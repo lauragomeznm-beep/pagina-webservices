@@ -198,7 +198,7 @@ HTML_PAGE = """
                     alert(data.error || 'No se pudo procesar la imagen.');
                 }
             } catch (err) {
-                alert('Error de conexión con el servidor.');
+                alert('Detalle del error: ' + err.message);
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Reconocer Número';
