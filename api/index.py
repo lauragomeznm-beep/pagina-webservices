@@ -185,7 +185,7 @@ HTML_PAGE = """
             formData.append('image', imageInput.files[0]);
 
             try {
-                const res = await fetch('/api/predecir', {
+                const res = await fetch('/', {
                     method: 'POST',
                     body: formData
                 });
@@ -233,12 +233,10 @@ def predict_digit_from_image(file_bytes):
 
     best_digit = 0
     best_score = -1.0
-    scores = {}
 
     for digit, tmpl in TEMPLATE_MATRICES.items():
         diff = np.abs(norm - tmpl).mean()
         similarity = max(0.0, 1.0 - diff)
-        scores[digit] = similarity
         if similarity > best_score:
             best_score = similarity
             best_digit = digit
@@ -246,20 +244,18 @@ def predict_digit_from_image(file_bytes):
     confidence = round(min(99.0, max(50.0, best_score * 100)), 1)
     return best_digit, confidence
 
-@app.route("/")
-@app.route("/api/index")
+@app.route("/", methods=["GET", "POST"])
+@app.route("/api/index", methods=["GET", "POST"])
 def home():
+    if request.method == "POST":
+        if "image" not in request.files:
+            return jsonify({"error": "No se recibió ninguna imagen."}), 400
+        file = request.files["image"]
+        if file.filename == "":
+            return jsonify({"error": "Selecciona un archivo válido."}), 400
+        try:
+            digit, confidence = predict_digit_from_image(file.read())
+            return jsonify({"digit": digit, "confidence": confidence})
+        except Exception as e:
+            return jsonify({"error": f"Error al analizar la imagen: {str(e)}"}), 500
     return render_template_string(HTML_PAGE)
-
-@app.route("/api/predecir", methods=["POST"])
-def predecir():
-    if "image" not in request.files:
-        return jsonify({"error": "No se recibió ninguna imagen."}), 400
-    file = request.files["image"]
-    if file.filename == "":
-        return jsonify({"error": "Selecciona un archivo válido."}), 400
-    try:
-        digit, confidence = predict_digit_from_image(file.read())
-        return jsonify({"digit": digit, "confidence": confidence})
-    except Exception as e:
-        return jsonify({"error": f"Error al analizar la imagen: {str(e)}"}), 500
