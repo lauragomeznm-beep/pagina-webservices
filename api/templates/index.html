@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reconocedor de Números</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-rose-50 via-purple-50 to-sky-100 text-slate-800 flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-white/90 backdrop-blur-md rounded-3xl shadow-xl shadow-purple-200/50 border border-white p-7">
+        <div class="text-center mb-6">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 mb-3">
+                Dígitos 0 – 9
+            </span>
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">¿Qué número hay aquí?</h1>
+            <p class="text-sm text-slate-500 mt-1">Sube la imagen de un número para reconocerlo al instante.</p>
+        </div>
+
+        <form id="formNumero" class="space-y-4">
+            <label for="archivoImagen" class="group block cursor-pointer rounded-2xl border-2 border-dashed border-purple-200 hover:border-purple-400 bg-purple-50/40 hover:bg-purple-50 transition p-5 text-center">
+                <div id="previewContainer" class="hidden mb-3">
+                    <img id="previewImg" src="" alt="Vista previa" class="w-28 h-28 object-contain mx-auto rounded-2xl bg-white p-2 shadow-sm border border-purple-100">
+                </div>
+                <div id="placeholderText">
+                    <p class="text-sm font-semibold text-purple-700 group-hover:text-purple-800">Toca aquí para elegir una imagen</p>
+                    <p class="text-xs text-slate-400 mt-1">PNG, JPG o JPEG</p>
+                </div>
+                <input id="archivoImagen" type="file" accept="image/*" required class="hidden">
+            </label>
+
+            <button id="btnPredecir" type="submit"
+                class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold text-sm shadow-md shadow-pink-200 transition cursor-pointer">
+                Reconocer número
+            </button>
+        </form>
+
+        <div id="resultadoCard" class="hidden mt-6 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 p-5 text-center">
+            <p class="text-xs font-semibold uppercase tracking-wider text-purple-500">Número detectado</p>
+            <p id="numeroDetectado" class="text-5xl font-extrabold text-slate-900 my-2">-</p>
+            <p id="confianzaTexto" class="text-xs font-medium text-slate-500"></p>
+        </div>
+
+        <p id="errorTexto" class="hidden mt-4 text-center text-xs font-medium text-rose-500"></p>
+    </div>
+
+    <script>
+        const inputImg = document.getElementById("archivoImagen");
+        const previewContainer = document.getElementById("previewContainer");
+        const previewImg = document.getElementById("previewImg");
+        const placeholderText = document.getElementById("placeholderText");
+        const form = document.getElementById("formNumero");
+        const btn = document.getElementById("btnPredecir");
+        const resultadoCard = document.getElementById("resultadoCard");
+        const numeroDetectado = document.getElementById("numeroDetectado");
+        const confianzaTexto = document.getElementById("confianzaTexto");
+        const errorTexto = document.getElementById("errorTexto");
+
+        inputImg.addEventListener("change", () => {
+            const file = inputImg.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                previewContainer.classList.remove("hidden");
+                placeholderText.querySelector("p").textContent = file.name;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!inputImg.files[0]) return;
+
+            errorTexto.classList.add("hidden");
+            resultadoCard.classList.add("hidden");
+            btn.disabled = true;
+            btn.textContent = "Reconociendo...";
+
+            const formData = new FormData();
+            formData.append("imagen", inputImg.files[0]);
+
+            try {
+                const resp = await fetch("/api/predecir", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await resp.json();
+
+                if (data.status === "ok") {
+                    numeroDetectado.textContent = data.numero;
+                    confianzaTexto.textContent = `Confianza estimada: ${data.confianza}%`;
+                    resultadoCard.classList.remove("hidden");
+                } else {
+                    errorTexto.textContent = data.mensaje || "Error al procesar.";
+                    errorTexto.classList.remove("hidden");
+                }
+            } catch {
+                errorTexto.textContent = "No se pudo conectar con el servidor.";
+                errorTexto.classList.remove("hidden");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Reconocer número";
+            }
+        });
+    </script>
+</body>
+</html>
