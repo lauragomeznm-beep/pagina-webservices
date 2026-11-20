@@ -241,8 +241,8 @@ def predict_digit_from_image(file_bytes):
             best_score = similarity
             best_digit = digit
 
-    confidence = round(min(99.0, max(50.0, best_score * 100)), 1)
-    return best_digit, confidence
+    confidence = float(round(min(99.0, max(50.0, float(best_score) * 100.0)), 1))
+    return int(best_digit), confidence
 
 @app.route("/", methods=["GET", "POST"])
 @app.route("/api/index", methods=["GET", "POST"])
